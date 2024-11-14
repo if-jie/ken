@@ -2,7 +2,7 @@
  * @Author: 1454164915@qq.com 1454164915@qq.com
  * @Date: 2024-11-12 23:20:00
  * @LastEditors: 1454164915@qq.com 1454164915@qq.com
- * @LastEditTime: 2024-11-14 13:33:52
+ * @LastEditTime: 2024-11-14 19:18:46
  * @FilePath: /ken/src/main.rs
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -23,6 +23,9 @@ use players::*;
 mod rect;
 pub use rect::Rect;
 
+mod visibility_system;
+use visibility_system::VisibilitySystem;
+
 
 // impl Component for Position {
 
@@ -39,8 +42,8 @@ pub struct State{
 
 impl State {
     fn run_systems(&mut self){
-        // let mut lw = LeftWalker{};
-        // lw.run_now(&self.ecs);
+        let mut lw = VisibilitySystem{};
+        lw.run_now(&self.ecs);
         self.ecs.maintain();
 
     }
@@ -53,8 +56,8 @@ impl GameState for State {
         player_input(self, ctx);
         self.run_systems();
         // huizhituxiang
-        let map = self.ecs.fetch::<Vec<TileType>>();
-        draw_map(&map, ctx);
+        // let map = self.ecs.fetch::<Vec<TileType>>();
+        draw_map(&self.ecs, ctx);
 
         let positions = self.ecs.read_storage::<Position>();
         let renderables = self.ecs.read_storage::<Renderable>();
@@ -93,8 +96,11 @@ fn main() -> rltk::BError{
     gs.ecs.register::<Renderable>();
     // gs.ecs.register::<LeftMover>();
     gs.ecs.register::<Player>();
+    gs.ecs.register::<Viewshed>();
 
-    gs.ecs.insert(new_map_rooms_and_corridors());
+    let map : Map = Map::new_map_rooms_and_corridors();
+    let (player_x, player_y) = map.rooms[0].center();
+    gs.ecs.insert(map);
 
 
     gs.ecs
@@ -106,6 +112,7 @@ fn main() -> rltk::BError{
             bg: RGB::named(rltk::BLACK),
         })
         .with(Player{})
+        .with(Viewshed{ visible_tiles: Vec::new(), range : 8, dirty: true})
         .build();
 
         // for i in 0..10{
